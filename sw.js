@@ -1,5 +1,5 @@
 // Run Scotland – Service Worker
-const VERSION = "v1";
+const VERSION = "v2";
 const SHELL = "shell-" + VERSION;
 const DATA = "data-" + VERSION;
 const TILES = "tiles-" + VERSION;

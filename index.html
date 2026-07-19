@@ -49,6 +49,8 @@
   .fchip.on{background:var(--brand);color:#fff}
   .fchip.gold.on{background:var(--gold);color:#3a2a00}
   .count{font-size:13px;color:var(--muted);margin:0 0 10px;font-weight:600}
+  .rlead{font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.5}
+  .rrow{display:block;font-size:13px;color:var(--muted);line-height:1.5}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;
     box-shadow:var(--shadow);display:flex;flex-direction:column}
@@ -102,7 +104,8 @@
   <div class="tabs">
     <button class="tab active" data-view="list">Liste</button>
     <button class="tab" data-view="map">Karte</button>
-    <button class="tab" data-view="favmap">★ Favoriten</button>
+    <button class="tab" data-view="favmap">★ Fav</button>
+    <button class="tab" data-view="recur">🔁 Regelmäßig</button>
   </div>
 </header>
 
@@ -130,6 +133,11 @@
   </div>
   <div id="mapView" class="hidden"><div id="map"></div></div>
   <div id="favmapView" class="hidden"><div id="favmap"></div></div>
+  <div id="recurView" class="hidden">
+    <p class="rlead">Wöchentliche Läufe & Clubs rund um Cupar/Dundee (bis ~30 Min). <b>parkruns</b> sind gratis & ohne Voranmeldung am Tag – einmal auf parkrun.org.uk registrieren, Barcode mitbringen.</p>
+    <div class="count" id="recCount"></div>
+    <div class="grid" id="rgrid"></div>
+  </div>
 </div>
 
 <div class="attrib">Karten © OpenStreetMap-Mitwirkende · Daten via Supabase</div>
@@ -188,6 +196,7 @@ function filtered(){
   const maxDrive=+$("#drive").value;
   const mon=$("#month").value;
   return EVENTS.filter(e=>{
+    if(e.kind==="recurring") return false;
     if(favOnly && !e.favourite) return false;
     if(activeDist.size){ if(![...activeDist].some(d=>(e.distances||[]).includes(d))) return false; }
     if(maxDrive<99 && (e.drive_from_cupar_h==null || e.drive_from_cupar_h>maxDrive)) return false;
@@ -232,17 +241,55 @@ function card(e){
 }
 
 function render(){
-  const list=filtered();
-  $("#count").textContent=EVENTS.length+" Events";
-  $("#resCount").textContent=list.length+" von "+EVENTS.length+" angezeigt";
-  const grid=$("#grid");
   clearCardMaps();
+  const list=filtered();
+  const raceTotal=EVENTS.filter(e=>e.kind!=="recurring").length;
+  $("#count").textContent=raceTotal+" Events";
+  $("#resCount").textContent=list.length+" von "+raceTotal+" angezeigt";
+  const grid=$("#grid");
   grid.innerHTML=list.map(card).join("");
   $("#empty").classList.toggle("hidden",list.length>0);
   grid.querySelectorAll(".star").forEach(b=>b.onclick=()=>toggleFav(b.dataset.id));
-  buildCardMaps();
+  // recurring
+  const rec=EVENTS.filter(e=>e.kind==="recurring")
+    .sort((a,b)=>(a.drive_from_cupar_h==null?9:a.drive_from_cupar_h)-(b.drive_from_cupar_h==null?9:b.drive_from_cupar_h));
+  $("#recCount").textContent=rec.length+" regelmäßige Läufe & Clubs";
+  const rgrid=$("#rgrid");
+  rgrid.innerHTML=rec.map(recurCard).join("");
+  rgrid.querySelectorAll(".star").forEach(b=>b.onclick=()=>toggleFav(b.dataset.id));
+  // maps
   if(view==="map") drawMap(map,mapLayer,list,"map");
   if(view==="favmap") drawMap(favmap,favLayer,EVENTS.filter(e=>e.favourite),"favmap");
+  if(view==="list") buildCardMaps(grid);
+  if(view==="recur") buildCardMaps(rgrid);
+}
+
+function subLabel(s){return {parkrun:"parkrun · gratis",club:"Club",social:"Social Run",beginner:"Einsteiger"}[s]||"Regelmäßig";}
+function recurCard(e){
+  const hasGeo=(e.lat!=null&&e.lng!=null);
+  const img=hasGeo
+    ? `<div class="thumbmap" data-id="${e.id}" data-lat="${e.lat}" data-lng="${e.lng}"></div>`
+    : `<div class="noimg">🔁</div>`;
+  const drive=e.drive_from_cupar_h!=null?`<span class="bd">🚐 ${driveTxt(e.drive_from_cupar_h)} ab Cupar</span>`:"";
+  const dchips=(e.distances||[]).map(d=>`<span class="chip">${d}</span>`).join("");
+  return `<div class="card">
+    <div class="thumb">${img}
+      <div class="badges"><span class="bd">${subLabel(e.subtype)}</span>${drive}</div>
+      <button class="star ${e.favourite?"on":""}" data-id="${e.id}" title="Favorit">${e.favourite?"★":"☆"}</button>
+    </div>
+    <div class="body">
+      <p class="name">${e.name}</p>
+      ${e.schedule?`<div class="row">🗓️ <b>${e.schedule}</b></div>`:""}
+      <div class="row">📍 <span><b>${e.town||""}</b>${e.region?", "+e.region:""}</span></div>
+      ${dchips?`<div class="chips">${dchips}</div>`:""}
+      ${e.notes?`<div class="rrow">${e.notes}</div>`:""}
+      ${e.contact?`<div class="rrow">✉️ ${e.contact}</div>`:""}
+      <div class="btns">
+        ${e.registration_url?`<a class="btn pri" href="${e.registration_url}" target="_blank" rel="noopener">Website →</a>`:""}
+        ${hasGeo?`<a class="btn map" href="${mapsRoute(e.lat,e.lng)}" target="_blank" rel="noopener">📍 Route</a>`:""}
+      </div>
+    </div>
+  </div>`;
 }
 
 function clearCardMaps(){
@@ -250,8 +297,8 @@ function clearCardMaps(){
   cardMaps={};
   if(cardIO){ cardIO.disconnect(); cardIO=null; }
 }
-function buildCardMaps(){
-  const els=$("#grid").querySelectorAll(".thumbmap");
+function buildCardMaps(container){
+  const els=container.querySelectorAll(".thumbmap");
   if(!els.length) return;
   cardIO=new IntersectionObserver((ents,obs)=>{
     ents.forEach(en=>{
@@ -316,8 +363,9 @@ function setView(v){
   $("#listView").classList.toggle("hidden",v!=="list");
   $("#mapView").classList.toggle("hidden",v!=="map");
   $("#favmapView").classList.toggle("hidden",v!=="favmap");
-  if(v==="map") drawMap(map,mapLayer,filtered(),"map");
-  if(v==="favmap") drawMap(favmap,favLayer,EVENTS.filter(e=>e.favourite),"favmap");
+  $("#recurView").classList.toggle("hidden",v!=="recur");
+  $("#filters").classList.toggle("hidden",!(v==="list"||v==="map"));
+  render();
 }
 
 let toastT;
