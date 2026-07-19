@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f5132">
+<title>Run Scotland – Meine Events</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+  :root{
+    --bg:#f4f5f7; --card:#ffffff; --ink:#16181d; --muted:#6b7280; --line:#e5e7eb;
+    --brand:#0f5132; --brand2:#157347; --chip:#eef1f4; --chipink:#374151;
+    --gold:#e8a72c; --shadow:0 4px 16px rgba(0,0,0,.08);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{--bg:#0f1115;--card:#1a1d23;--ink:#eef0f3;--muted:#9aa1ad;--line:#2a2e36;
+      --chip:#262b33;--chipink:#d7dbe2;--shadow:0 4px 18px rgba(0,0,0,.4);}
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;padding-bottom:40px}
+  a{color:inherit}
+  header{position:sticky;top:0;z-index:1200;background:var(--brand);color:#fff;
+    padding:14px 16px calc(14px + env(safe-area-inset-bottom,0));box-shadow:var(--shadow)}
+  .htop{display:flex;align-items:center;gap:10px;max-width:1100px;margin:0 auto}
+  .htop h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.2px;flex:1}
+  .htop .sub{font-size:12px;opacity:.85;font-weight:600}
+  .sync{font-size:11px;opacity:.8}
+  .tabs{display:flex;gap:6px;max-width:1100px;margin:12px auto 0}
+  .tab{flex:1;text-align:center;background:rgba(255,255,255,.14);color:#fff;border:0;
+    padding:9px 6px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer}
+  .tab.active{background:#fff;color:var(--brand)}
+  .wrap{max-width:1100px;margin:0 auto;padding:14px 16px}
+  .filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+  .filters input[type=search],.filters select{background:var(--card);color:var(--ink);
+    border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:14px}
+  .filters input[type=search]{flex:1;min-width:150px}
+  .fchip{background:var(--chip);color:var(--chipink);border:1px solid transparent;border-radius:999px;
+    padding:7px 13px;font-size:13px;font-weight:700;cursor:pointer;user-select:none}
+  .fchip.on{background:var(--brand);color:#fff}
+  .fchip.gold.on{background:var(--gold);color:#3a2a00}
+  .count{font-size:13px;color:var(--muted);margin:0 0 10px;font-weight:600}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;
+    box-shadow:var(--shadow);display:flex;flex-direction:column}
+  .thumb{position:relative;aspect-ratio:16/9;background:linear-gradient(135deg,#1b3a2b,#2e6b4a)}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .thumb .noimg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:34px;opacity:.5}
+  .badges{position:absolute;top:10px;left:10px;display:flex;gap:6px;flex-wrap:wrap}
+  .bd{background:rgba(0,0,0,.62);color:#fff;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:700;backdrop-filter:blur(3px)}
+  .star{position:absolute;top:8px;right:8px;width:40px;height:40px;border:0;border-radius:50%;
+    background:rgba(0,0,0,.5);color:#fff;font-size:20px;cursor:pointer;line-height:40px;text-align:center}
+  .star.on{color:var(--gold)}
+  .body{padding:13px 15px 15px;display:flex;flex-direction:column;gap:7px;flex:1}
+  .name{font-size:17px;font-weight:800;margin:0;line-height:1.25}
+  .row{font-size:13.5px;color:var(--muted);display:flex;gap:7px;align-items:flex-start}
+  .row b{color:var(--ink);font-weight:700}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0}
+  .chip{background:var(--chip);color:var(--chipink);border-radius:8px;padding:4px 9px;font-size:12px;font-weight:700}
+  .camp{background:var(--chip);border-radius:11px;padding:9px 11px;font-size:12.5px;color:var(--chipink);margin-top:2px}
+  .camp .ct{font-weight:800;color:var(--ink);display:block;margin-bottom:2px}
+  .btns{display:flex;flex-wrap:wrap;gap:7px;margin-top:auto;padding-top:6px}
+  .btn{flex:1 1 auto;text-align:center;text-decoration:none;border-radius:10px;padding:9px 8px;
+    font-size:13px;font-weight:700;border:1px solid var(--line);color:var(--ink);background:var(--card);white-space:nowrap}
+  .btn.pri{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .btn.map{background:transparent}
+  #map,#favmap{height:70vh;min-height:420px;border-radius:16px;border:1px solid var(--line);box-shadow:var(--shadow)}
+  .hidden{display:none!important}
+  .empty{text-align:center;color:var(--muted);padding:50px 20px;font-weight:600}
+  .leaflet-popup-content{font-size:13px}
+  .lp b{font-size:14px}
+  .lp a{display:inline-block;margin-top:6px;color:var(--brand2);font-weight:700;text-decoration:none}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#16181d;color:#fff;
+    padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:.25s;z-index:2000;pointer-events:none}
+  .toast.show{opacity:.95}
+</style>
+</head>
+<body>
+<header>
+  <div class="htop">
+    <h1>🏴 Run Scotland</h1>
+    <div style="text-align:right">
+      <div class="sub" id="count">…</div>
+      <div class="sync" id="sync">lädt…</div>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-view="list">Liste</button>
+    <button class="tab" data-view="map">Karte</button>
+    <button class="tab" data-view="favmap">★ Favoriten</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="filters" id="filters">
+    <input type="search" id="q" placeholder="Suche (Ort, Name)…">
+    <span class="fchip" data-dist="5K">5K</span>
+    <span class="fchip" data-dist="10K">10K</span>
+    <span class="fchip" data-dist="Half Marathon">Half</span>
+    <span class="fchip" data-dist="Marathon">Marathon</span>
+    <select id="drive">
+      <option value="99">Fahrzeit: egal</option>
+      <option value="1">≤ 1 h</option>
+      <option value="2">≤ 2 h</option>
+      <option value="3">≤ 3 h</option>
+    </select>
+    <select id="month"><option value="">Alle Monate</option></select>
+    <span class="fchip gold" id="favonly">★ nur Favoriten</span>
+  </div>
+
+  <div id="listView">
+    <div class="count" id="resCount"></div>
+    <div class="grid" id="grid"></div>
+    <div class="empty hidden" id="empty">Keine Events für diese Filter.</div>
+  </div>
+  <div id="mapView" class="hidden"><div id="map"></div></div>
+  <div id="favmapView" class="hidden"><div id="favmap"></div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+const SUPABASE_URL = "https://vtbyutksymzgmtlczisz.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0Ynl1dGtzeW16Z210bGN6aXN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0MzA5MzgsImV4cCI6MjEwMDAwNjkzOH0.wrvgLvpdxYzbJ0kjS2nX8CTq18GvXF5C8VoQGHMnVzc";
+const H = {apikey:SUPABASE_KEY, Authorization:"Bearer "+SUPABASE_KEY};
+
+let EVENTS=[], activeDist=new Set(), favOnly=false, view="list";
+let map=null, favmap=null, mapLayer=null, favLayer=null;
+
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const enc=encodeURIComponent;
+const MONTHS=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+
+function fmtDate(d){
+  if(!d) return "Datum offen";
+  const dt=new Date(d+"T00:00:00");
+  return dt.toLocaleDateString("de-DE",{weekday:"short",day:"2-digit",month:"short",year:"numeric"});
+}
+function driveTxt(h){ if(h==null) return ""; return h<1? Math.round(h*60)+" Min":(""+h).replace(".",",")+" h"; }
+function mapsRoute(lat,lng){ return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`; }
+function mapsSearch(q){ return `https://www.google.com/maps/search/?api=1&query=${enc(q)}`; }
+
+async function load(){
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/events?select=*&order=date.asc`,{headers:H});
+    if(!r.ok) throw new Error(r.status);
+    EVENTS=await r.json();
+    buildMonths();
+    render();
+    const t=new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+    $("#sync").textContent="Sync "+t;
+  }catch(e){ $("#sync").textContent="Offline?"; console.error(e); }
+}
+
+function buildMonths(){
+  const sel=$("#month"); if(sel.dataset.built) return;
+  const set=new Set();
+  EVENTS.forEach(e=>{ if(e.date){const[y,m]=e.date.split("-");set.add(y+"-"+m);} });
+  [...set].sort().forEach(ym=>{
+    const[y,m]=ym.split("-");const o=document.createElement("option");
+    o.value=ym;o.textContent=MONTHS[+m-1]+" "+y;sel.appendChild(o);
+  });
+  sel.dataset.built="1";
+}
+
+function filtered(){
+  const q=$("#q").value.trim().toLowerCase();
+  const maxDrive=+$("#drive").value;
+  const mon=$("#month").value;
+  return EVENTS.filter(e=>{
+    if(favOnly && !e.favourite) return false;
+    if(activeDist.size){ if(![...activeDist].some(d=>(e.distances||[]).includes(d))) return false; }
+    if(maxDrive<99 && (e.drive_from_cupar_h==null || e.drive_from_cupar_h>maxDrive)) return false;
+    if(mon && (!e.date || !e.date.startsWith(mon))) return false;
+    if(q){ const hay=(e.name+" "+(e.town||"")+" "+(e.region||"")).toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  });
+}
+
+function card(e){
+  const cs=e.campsite||{};
+  const dchips=(e.distances||[]).map(d=>`<span class="chip">${d}</span>`).join("");
+  const img=e.thumbnail_url
+    ? `<img src="${e.thumbnail_url}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="noimg" style="display:none">🏃</div>`
+    : `<div class="noimg">🏃</div>`;
+  const drive=e.drive_from_cupar_h!=null?`<span class="bd">🚐 ${driveTxt(e.drive_from_cupar_h)} ab Cupar</span>`:"";
+  const campLine = cs.name?`<div class="camp"><span class="ct">🏕️ ${cs.name}</span>
+      ${[cs.approx_price,cs.distance_km?("~"+cs.distance_km).replace("~~","~"):""].filter(Boolean).join(" · ")}
+      ${cs.link?` · <a href="${cs.link}" target="_blank" rel="noopener" style="color:var(--brand2);font-weight:700">Infos</a>`:""}</div>`:"";
+  const campRoute = cs.name?`<a class="btn map" href="${mapsSearch(cs.name+", Scotland")}" target="_blank" rel="noopener">🏕️ Route</a>`:"";
+  return `<div class="card">
+    <div class="thumb">${img}
+      <div class="badges"><span class="bd">${e.country||"Scotland"}</span>${drive}</div>
+      <button class="star ${e.favourite?"on":""}" data-id="${e.id}" title="Favorit">${e.favourite?"★":"☆"}</button>
+    </div>
+    <div class="body">
+      <p class="name">${e.name}</p>
+      <div class="row">📅 <b>${fmtDate(e.date)}</b>${e.date_note?` · ${e.date_note}`:""}</div>
+      <div class="row">📍 <span><b>${e.town||""}</b>${e.region?", "+e.region:""}</span></div>
+      ${e.start_time?`<div class="row">🕘 ${e.start_time}</div>`:""}
+      <div class="chips">${dchips}</div>
+      ${e.price?`<div class="row">💷 ${e.price}</div>`:""}
+      ${campLine}
+      <div class="btns">
+        ${e.registration_url?`<a class="btn pri" href="${e.registration_url}" target="_blank" rel="noopener">Anmelden →</a>`:""}
+        ${(e.lat!=null&&e.lng!=null)?`<a class="btn map" href="${mapsRoute(e.lat,e.lng)}" target="_blank" rel="noopener">📍 Route</a>`:""}
+        ${campRoute}
+      </div>
+    </div>
+  </div>`;
+}
+
+function render(){
+  const list=filtered();
+  $("#count").textContent=EVENTS.length+" Events";
+  $("#resCount").textContent=list.length+" von "+EVENTS.length+" angezeigt";
+  const grid=$("#grid");
+  grid.innerHTML=list.map(card).join("");
+  $("#empty").classList.toggle("hidden",list.length>0);
+  grid.querySelectorAll(".star").forEach(b=>b.onclick=()=>toggleFav(b.dataset.id));
+  if(view==="map") drawMap(map,mapLayer,list,"map");
+  if(view==="favmap") drawMap(favmap,favLayer,EVENTS.filter(e=>e.favourite),"favmap");
+}
+
+async function toggleFav(id){
+  const e=EVENTS.find(x=>x.id===id); if(!e) return;
+  const nv=!e.favourite; e.favourite=nv; render();
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/events?id=eq.${enc(id)}`,{
+      method:"PATCH",headers:{...H,"Content-Type":"application/json",Prefer:"return=minimal"},
+      body:JSON.stringify({favourite:nv})});
+    if(!r.ok) throw new Error(r.status);
+    toast(nv?"★ Zu Favoriten hinzugefügt":"Aus Favoriten entfernt");
+  }catch(err){ e.favourite=!nv; render(); toast("Fehler – nicht gespeichert"); console.error(err); }
+}
+
+function ensureMap(id){
+  const m=L.map(id,{scrollWheelZoom:true}).setView([56.6,-3.8],7);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {maxZoom:18,attribution:"© OpenStreetMap"}).addTo(m);
+  return m;
+}
+function drawMap(m,layer,list,which){
+  if(!m){ m=ensureMap(which==="map"?"map":"favmap"); if(which==="map")map=m;else favmap=m; }
+  if(layer){ m.removeLayer(layer); }
+  const grp=L.layerGroup().addTo(m);
+  const pts=[];
+  list.forEach(e=>{
+    if(e.lat==null||e.lng==null) return;
+    const cs=e.campsite||{};
+    const html=`<div class="lp"><b>${e.name}</b><br>${fmtDate(e.date)}<br>📍 ${e.town||""}
+      <br>${(e.distances||[]).join(" · ")}
+      ${cs.name?`<br>🏕️ ${cs.name}`:""}
+      <br><a href="${mapsRoute(e.lat,e.lng)}" target="_blank" rel="noopener">Route zum Start →</a>
+      ${e.registration_url?`<br><a href="${e.registration_url}" target="_blank" rel="noopener">Anmelden →</a>`:""}</div>`;
+    const mk=L.marker([e.lat,e.lng]).bindPopup(html).addTo(grp);
+    pts.push([e.lat,e.lng]);
+  });
+  if(which==="map")mapLayer=grp;else favLayer=grp;
+  setTimeout(()=>{ m.invalidateSize(); if(pts.length) m.fitBounds(pts,{padding:[40,40],maxZoom:10}); },80);
+}
+
+function setView(v){
+  view=v;
+  $$(".tab").forEach(t=>t.classList.toggle("active",t.dataset.view===v));
+  $("#listView").classList.toggle("hidden",v!=="list");
+  $("#mapView").classList.toggle("hidden",v!=="map");
+  $("#favmapView").classList.toggle("hidden",v!=="favmap");
+  if(v==="map") drawMap(map,mapLayer,filtered(),"map");
+  if(v==="favmap") drawMap(favmap,favLayer,EVENTS.filter(e=>e.favourite),"favmap");
+}
+
+let toastT;
+function toast(m){ const t=$("#toast");t.textContent=m;t.classList.add("show");
+  clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),1800); }
+
+// events
+$$(".tab").forEach(t=>t.onclick=()=>setView(t.dataset.view));
+$$(".fchip[data-dist]").forEach(c=>c.onclick=()=>{
+  const d=c.dataset.dist; c.classList.toggle("on");
+  activeDist.has(d)?activeDist.delete(d):activeDist.add(d); render();
+});
+$("#favonly").onclick=function(){ favOnly=!favOnly; this.classList.toggle("on",favOnly); render(); };
+$("#q").oninput=render; $("#drive").onchange=render; $("#month").onchange=render;
+
+// sync: refresh on focus + light polling
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) load(); });
+setInterval(()=>{ if(!document.hidden) load(); },30000);
+
+load();
+</script>
+</body>
+</html>
