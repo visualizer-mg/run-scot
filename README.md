@@ -8,6 +8,13 @@ Favoriten (⭐) und Karte. Läuft auf Desktop und Handy.
 - **Karte:** Leaflet + OpenStreetMap (kein API-Key nötig).
 - **Routen:** „Route"-Buttons öffnen Google Maps.
 - **Kein Backend nötig** — reine statische Seite (`index.html`).
+- **PWA / installierbar** — auf dem Handy „zum Startbildschirm hinzufügen" → läuft im Vollbild wie eine App, lädt sofort und zeigt zuletzt geladene Events auch offline.
+
+## Dateien
+`index.html` · `manifest.webmanifest` · `sw.js` (Service-Worker/Offline) · `icon-192.png` · `icon-512.png` · `icon-maskable-512.png` · `apple-touch-icon.png`
+
+## Als App installieren (Android/Chrome)
+Seite öffnen → oben auf **„⬇︎ App"** tippen (oder Chrome-Menü ⋮ → „App installieren" / „Zum Startbildschirm zufügen"). Danach liegt ein Icon auf dem Homescreen und die Seite startet ohne Browserleiste. iPhone/Safari: Teilen → „Zum Home-Bildschirm".
 
 ## Auf Vercel veröffentlichen (via GitHub)
 

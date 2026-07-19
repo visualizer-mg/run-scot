@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0f5132">
 <title>Run Scotland – Meine Events</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Run Scotland">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style>
@@ -32,6 +38,7 @@
   .tab{flex:1;text-align:center;background:rgba(255,255,255,.14);color:#fff;border:0;
     padding:9px 6px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer}
   .tab.active{background:#fff;color:var(--brand)}
+  .installbtn{background:rgba(255,255,255,.16);color:#fff;border:0;border-radius:9px;padding:8px 12px;font-size:13px;font-weight:700;cursor:pointer;flex:0 0 auto}
   .wrap{max-width:1100px;margin:0 auto;padding:14px 16px}
   .filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
   .filters input[type=search],.filters select{background:var(--card);color:var(--ink);
@@ -86,6 +93,7 @@
 <header>
   <div class="htop">
     <h1>🏴 Run Scotland</h1>
+    <button id="installBtn" class="installbtn hidden">⬇︎ App</button>
     <div style="text-align:right">
       <div class="sub" id="count">…</div>
       <div class="sync" id="sync">lädt…</div>
@@ -328,6 +336,18 @@ $("#q").oninput=render; $("#drive").onchange=render; $("#month").onchange=render
 // sync: refresh on focus + light polling
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden) load(); });
 setInterval(()=>{ if(!document.hidden) load(); },30000);
+
+// PWA: install prompt + service worker
+let deferredPrompt=null;
+window.addEventListener("beforeinstallprompt",(e)=>{ e.preventDefault(); deferredPrompt=e;
+  const b=$("#installBtn"); if(b) b.classList.remove("hidden"); });
+const _ib=$("#installBtn");
+if(_ib) _ib.onclick=async()=>{ if(!deferredPrompt) return; deferredPrompt.prompt();
+  await deferredPrompt.userChoice; deferredPrompt=null; _ib.classList.add("hidden"); };
+window.addEventListener("appinstalled",()=>{ const b=$("#installBtn"); if(b) b.classList.add("hidden"); });
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+}
 
 load();
 </script>
